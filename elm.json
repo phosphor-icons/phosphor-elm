@@ -2,7 +2,7 @@
   "name": "phosphor-icons/phosphor-elm",
   "summary": "A flexible icon family for Elm",
   "license": "MIT",
-  "version": "1.4.1",
+  "version": "1.0.0",
   "type": "package",
   "exposed-modules": ["Phosphor"],
   "source-directories": ["src"],
