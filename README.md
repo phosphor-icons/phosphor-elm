@@ -6,9 +6,9 @@ Phosphor is a flexible icon family for interfaces, diagrams, presentations — w
 
 This implementation is inspired by [elm-feather](https://package.elm-lang.org/packages/1602/elm-feather/latest).
 
-[![GitHub stars](https://img.shields.io/github/stars/phosphor-icons/phosphor-react?style=flat-square&label=Star)](https://github.com/phosphor-icons/phosphor-react)
-[![GitHub forks](https://img.shields.io/github/forks/phosphor-icons/phosphor-react?style=flat-square&label=Fork)](https://github.com/phosphor-icons/phosphor-react/fork)
-[![GitHub watchers](https://img.shields.io/github/watchers/phosphor-icons/phosphor-react?style=flat-square&label=Watch)](https://github.com/phosphor-icons/phosphor-react)
+[![GitHub stars](https://img.shields.io/github/stars/phosphor-icons/phosphor-elm?style=flat-square&label=Star)](https://github.com/phosphor-icons/phosphor-elm)
+[![GitHub forks](https://img.shields.io/github/forks/phosphor-icons/phosphor-elm?style=flat-square&label=Fork)](https://github.com/phosphor-icons/phosphor-elm/fork)
+[![GitHub watchers](https://img.shields.io/github/watchers/phosphor-icons/phosphor-elm?style=flat-square&label=Watch)](https://github.com/phosphor-icons/phosphor-elm)
 [![Follow on GitHub](https://img.shields.io/github/followers/rektdeckard?style=flat-square&label=Follow)](https://github.com/rektdeckard)
 
 ## Installation
