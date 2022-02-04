@@ -72,7 +72,6 @@ function checkFiles(icon) {
 function generateAttrs(attributes) {
   return Object.entries(attributes).map(([attribute, value]) => {
     const attr = attribute.replace(/-./g, (x) => x[1].toUpperCase());
-    // console.log([attribute, attr, value]);
     return `Svg.Attributes.${attr} "${value}"`;
   });
 }
@@ -93,22 +92,59 @@ async function generateComponents() {
   let passes = 0;
   let fails = 0;
 
+  const allIconNames = Object.keys(icons).map((i) =>
+    i.replace(/-./g, (x) => x[1].toUpperCase())
+  );
+
   let componentString = `\
 module Phosphor exposing 
-    ( Icon
-    , IconVariant
-    , IconWeight(..)
-    , ${Object.keys(icons)
-      .map((i) => i.replace(/-./g, (x) => x[1].toUpperCase()))
-      .join("\n    , ")}
-    , customIcon
-    , defaultAttributes
-    , toHtml
-    , withClass
-    , withSize
-    , withSizeUnit
-    , xmlns
-    )
+  ( Icon
+  , IconVariant
+  , IconWeight(..)
+  , ${allIconNames.join("\n    , ")}
+  , toHtml
+  , withClass, withSize, withSizeUnit
+  , customIcon
+  )
+
+{-|
+
+
+# Basic Usage
+
+Using Phosphor Icons in your view is as easy as:
+
+    cube : Html msg
+    cube =
+        Phosphor.cube Bold
+            |> Phosphor.toHtml []
+
+Change \`Phosphor.cube\` to the icon you prefer, a list of all icons is visible here: <https://phosphoricons.com>
+
+All icons of this package are provided as the internal type \`Icon\`. To turn them into an \`Html msg\`, simply use the \`toHtml\` function.
+
+@docs Icon, toHtml
+
+
+# Customize Icons
+
+Phosphor Icons are \`1em\` by default, and come with the class \`ph-icon\`. For the aperture icon for example, this will be: \`ph-aperture\`.
+To customize its class and size attributes simply use the \`withClass\` and \`withSize\` functions before turning them into Html with \`toHtml\`.
+
+@docs withClass, withSize, withSizeUnit
+
+
+# New Custom Icons
+
+If you'd like to use same API while creating personally designed icons, you can use the \`customIcon\` function. You have to provide it with a \`List (Svg Never)\` that will be embedded into the icon.
+
+@docs customIcon
+
+# IconList
+
+${allIconNames.join(", ")}
+
+-}
 
 import Html exposing (Html)
 import Json.Encode
@@ -117,6 +153,8 @@ import Svg.Attributes
 import VirtualDom
 
 
+{-| Visual variant of the icon
+-}
 type IconWeight
     = Thin
     | Light
@@ -126,6 +164,8 @@ type IconWeight
     | Duotone
 
 
+{-| Customizable attributes of an icon
+-}
 type alias IconAttributes =
     { size : Float
     , sizeUnit : String
@@ -133,6 +173,8 @@ type alias IconAttributes =
     }
 
 
+{-| Default attributes of the icon
+-}
 defaultAttributes : IconAttributes
 defaultAttributes =
     { size = 1
@@ -141,10 +183,14 @@ defaultAttributes =
     }
 
 
+{-| Type representing icon builder
+-}
 type alias Icon =
     IconWeight -> IconVariant
 
 
+{-| Opaque type representing builder output
+-}
 type IconVariant
     = IconVariant
         { attrs : IconAttributes
@@ -152,6 +198,20 @@ type IconVariant
         }
 
 
+{-| Build custom svg icon
+
+    [ Svg.line [ x1 "21", y1 "10", x2 "3", y2 "10" ]
+    , Svg.line [ x1 "21", y1 "6", x2 "3", y2 "6" ]
+    , Svg.line [ x1 "21", y1 "14", x2 "3", y2 "14" ]
+    , Svg.line [ x1 "21", y1 "18", x2 "3", y2 "18" ]
+    ]
+        |> customIcon
+        |> withSize 26
+        |> withViewBox "0 0 26 26"
+        |> toHtml []
+
+Example output: <svg xmlns="<http://www.w3.org/2000/svg"> width="26" height="26" viewBox="0 0 26 26" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="21" y1="10" x2="3" y2="10"></line><line x1="21" y1="6" x2="3" y2="6"></line><line x1="21" y1="14" x2="3" y2="14"></line><line x1="21" y1="18" x2="3" y2="18"></line></svg>
+-}
 customIcon : List (Svg Never) -> IconVariant
 customIcon src =
     IconVariant
@@ -160,21 +220,52 @@ customIcon src =
         }
 
 
+{-| Set size attribute of an icon
+
+    Phosphor.download
+        |> Phosphor.withSize 10
+        |> Phosphor.toHtml []
+-}
 withSize : Float -> IconVariant -> IconVariant
 withSize size (IconVariant { attrs, src }) =
     IconVariant { attrs = { attrs | size = size }, src = src }
 
 
+{-| Set unit of size attribute of an icon, one of: "em", "ex", "px", "in", "cm", "mm", "pt", "pc", "%"
+
+    Phosphor.download
+        |> Phosphor.withSize 50
+        |> Phosphor.withSizeUnit "%"
+        |> Phosphor.toHtml []
+-}
 withSizeUnit : String -> IconVariant -> IconVariant
 withSizeUnit sizeUnit (IconVariant { attrs, src }) =
     IconVariant { attrs = { attrs | sizeUnit = sizeUnit }, src = src }
 
 
+{-| Overwrite class attribute of an icon
+
+    Phosphor.download
+        |> Phosphor.withClass "custom-clazz"
+        |> Phosphor.toHtml []
+-}
 withClass : String -> IconVariant -> IconVariant
 withClass class (IconVariant { attrs, src }) =
     IconVariant { attrs = { attrs | class = Just class }, src = src }
 
 
+{-| Build and icon, ready to use in html. It accepts list of svg attributes, for example in case if you want to add an event handler.
+
+    -- default
+    Phosphor.download
+        |> Phosphor.toHtml []
+
+    -- with some attributes
+    Phosphor.download
+        |> Phosphor.withSize 10
+        |> Phosphor.withClass "custom-clazz"
+        |> Phosphor.toHtml [ onClick Download ]
+-}
 toHtml : List (Svg.Attribute msg) -> IconVariant -> Html msg
 toHtml attributes (IconVariant { src, attrs }) =
     let
@@ -182,7 +273,8 @@ toHtml attributes (IconVariant { src, attrs }) =
             attrs.size |> String.fromFloat
 
         baseAttributes =
-            [ Svg.Attributes.fill "currentColor"
+            [ xmlns "http://www.w3.org/2000/svg"
+            , Svg.Attributes.fill "currentColor"
             , Svg.Attributes.height <| strSize ++ attrs.sizeUnit
             , Svg.Attributes.width <| strSize ++ attrs.sizeUnit
             , Svg.Attributes.stroke "currentColor"
@@ -213,15 +305,12 @@ xmlns s =
 
 makeBuilder : List (Svg Never) -> IconVariant
 makeBuilder src =
-    IconVariant { attrs = defaultAttributes, src = src }  
+    IconVariant { attrs = defaultAttributes, src = src }
+
 
 `;
 
-  let i = 0;
-
   for (let key in icons) {
-    // if (i > 4) break;
-
     const icon = icons[key];
     const name = key.replace(/-./g, (x) => x[1].toUpperCase());
 
@@ -237,6 +326,9 @@ makeBuilder src =
     }
 
     componentString += `\
+{-| ${name}
+[SVG Assets](https://github.com/phosphor-icons/phosphor-elm/tree/master/assets/${key})
+-}
 ${name} : Icon
 ${name} weight =
     let
@@ -280,8 +372,11 @@ ${name} weight =
     in
     makeBuilder elements
 
+
 `;
-    i += 1;
+
+    passes += 1;
+    console.log(`${chalk.inverse.green(" DONE ")} ${name}`);
   }
 
   try {
