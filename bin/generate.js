@@ -11,9 +11,6 @@ const weights = ["Thin", "Light", "Regular", "Bold", "Fill", "Duotone"];
 
 void (async function main() {
   readFiles();
-  // console.log(
-  //   Object.keys(icons).map((i) => i.replace(/-./g, (x) => x[1].toUpperCase()))
-  // );
   await generateComponents();
 })();
 
@@ -72,7 +69,7 @@ function checkFiles(icon) {
 function generateAttrs(attributes) {
   return Object.entries(attributes).map(([attribute, value]) => {
     const attr = attribute.replace(/-./g, (x) => x[1].toUpperCase());
-    return `Svg.Attributes.${attr} "${value}"`;
+    return `A.${attr} "${value}"`;
   });
 }
 
@@ -83,7 +80,7 @@ function generateElement(element, weight) {
 
   if (element.name === "svg") return `[ ${childElements.join(", ")} ]`;
 
-  return `Svg.${element.name} [ ${generateAttrs(element.attributes).join(
+  return `S.${element.name} [ ${generateAttrs(element.attributes).join(
     ", "
   )} ] [ ${childElements.join(", ")} ]`;
 }
@@ -98,14 +95,11 @@ async function generateComponents() {
 
   let componentString = `\
 module Phosphor exposing 
-  ( Icon
-  , IconVariant
-  , IconWeight(..)
-  , ${allIconNames.join("\n    , ")}
-  , toHtml
-  , withClass, withSize, withSizeUnit
-  , customIcon
-  )
+    ( Icon, IconWeight(..), IconVariant, toHtml
+    , withClass, withSize, withSizeUnit
+    , customIcon
+    , ${allIconNames.join("\n    , ")}
+    )
 
 {-|
 
@@ -148,8 +142,8 @@ If you'd like to use same API while creating personally designed icons, you can 
 
 import Html exposing (Html)
 import Json.Encode
-import Svg exposing (Svg, svg)
-import Svg.Attributes
+import Svg as S exposing (Svg, svg)
+import Svg.Attributes as A
 import VirtualDom
 
 
@@ -210,7 +204,8 @@ type IconVariant
         |> withViewBox "0 0 26 26"
         |> toHtml []
 
-Example output: <svg xmlns="<http://www.w3.org/2000/svg"> width="26" height="26" viewBox="0 0 26 26" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="21" y1="10" x2="3" y2="10"></line><line x1="21" y1="6" x2="3" y2="6"></line><line x1="21" y1="14" x2="3" y2="14"></line><line x1="21" y1="18" x2="3" y2="18"></line></svg>
+Example output:
+<svg xmlns="<http://www.w3.org/2000/svg"> width="26" height="26" viewBox="0 0 26 26" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="21" y1="10" x2="3" y2="10"></line><line x1="21" y1="6" x2="3" y2="6"></line><line x1="21" y1="14" x2="3" y2="14"></line><line x1="21" y1="18" x2="3" y2="18"></line></svg>
 -}
 customIcon : List (Svg Never) -> IconVariant
 customIcon src =
@@ -266,7 +261,7 @@ withClass class (IconVariant { attrs, src }) =
         |> Phosphor.withClass "custom-clazz"
         |> Phosphor.toHtml [ onClick Download ]
 -}
-toHtml : List (Svg.Attribute msg) -> IconVariant -> Html msg
+toHtml : List (S.Attribute msg) -> IconVariant -> Html msg
 toHtml attributes (IconVariant { src, attrs }) =
     let
         strSize =
@@ -274,19 +269,19 @@ toHtml attributes (IconVariant { src, attrs }) =
 
         baseAttributes =
             [ xmlns "http://www.w3.org/2000/svg"
-            , Svg.Attributes.fill "currentColor"
-            , Svg.Attributes.height <| strSize ++ attrs.sizeUnit
-            , Svg.Attributes.width <| strSize ++ attrs.sizeUnit
-            , Svg.Attributes.stroke "currentColor"
-            , Svg.Attributes.strokeLinecap "round"
-            , Svg.Attributes.strokeLinejoin "round"
-            , Svg.Attributes.viewBox "0 0 256 256"
+            , A.fill "currentColor"
+            , A.height <| strSize ++ attrs.sizeUnit
+            , A.width <| strSize ++ attrs.sizeUnit
+            , A.stroke "currentColor"
+            , A.strokeLinecap "round"
+            , A.strokeLinejoin "round"
+            , A.viewBox "0 0 256 256"
             ]
 
         combinedAttributes =
             (case attrs.class of
                 Just c ->
-                    Svg.Attributes.class c :: baseAttributes
+                    A.class c :: baseAttributes
 
                 Nothing ->
                     baseAttributes
@@ -294,11 +289,11 @@ toHtml attributes (IconVariant { src, attrs }) =
                 ++ attributes
     in
     src
-        |> List.map (Svg.map never)
+        |> List.map (S.map never)
         |> svg combinedAttributes
 
 
-xmlns : String -> Svg.Attribute a
+xmlns : String -> S.Attribute a
 xmlns s =
     VirtualDom.property "xmlns" <| Json.Encode.string s
 
@@ -326,8 +321,7 @@ makeBuilder src =
     }
 
     componentString += `\
-{-| ${name}
-[SVG Assets](https://github.com/phosphor-icons/phosphor-elm/tree/master/assets/${key})
+{-| ![${name}](https://raw.githubusercontent.com/phosphor-icons/phosphor-elm/master/assets/${key}/${key}.svg)
 -}
 ${name} : Icon
 ${name} weight =
