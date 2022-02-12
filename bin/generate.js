@@ -4,14 +4,16 @@ const path = require("path");
 const chalk = require("chalk");
 const { parse } = require("svgson");
 
-const { ASSETS_PATH, INDEX_PATH } = require("./index");
+const { ASSETS_PATH, INDEX_PATH, TEST_PATH } = require("./index");
 
 const icons = {};
+const names = [];
 const weights = ["Thin", "Light", "Regular", "Bold", "Fill", "Duotone"];
 
 void (async function main() {
   readFiles();
   await generateComponents();
+  generateTestPage();
 })();
 
 function readFile(folder, pathname, weight) {
@@ -308,6 +310,7 @@ makeBuilder src =
   for (let key in icons) {
     const icon = icons[key];
     const name = key.replace(/-./g, (x) => x[1].toUpperCase());
+    names.push(name);
 
     if (!checkFiles(icon)) {
       fails += 1;
@@ -389,4 +392,165 @@ ${name} weight =
     );
   if (fails > 0)
     console.log(chalk.red(`${fails} component${fails > 1 ? "s" : ""} failed`));
+}
+
+function generateTestPage() {
+  const fileString = `\
+module Test exposing (..)
+
+import Browser
+import Html exposing (..)
+import Html.Attributes exposing (..)
+import Html.Events exposing (onInput, onClick)
+import Html.Events.Extra.Wheel as Wheel
+import Phosphor exposing (IconWeight(..), toHtml, withSize, withSizeUnit, withClass)
+
+
+
+-- MAIN
+
+
+main =
+    Browser.sandbox { init = init, update = update, view = view }
+
+
+
+-- MODEL
+
+
+type alias Model =
+    { weight: IconWeight
+    , size: Float
+    }
+
+
+init : Model
+init =
+    Model Thin 64
+
+
+
+-- UPDATE
+
+
+type Msg
+    = SetWeight String
+    | SetSize String
+    | Reset
+    | NoOp
+
+
+update : Msg -> Model -> Model
+update msg model =
+    case msg of
+        SetWeight weight ->
+            { model | weight = parseWeight weight }
+
+        SetSize size ->
+            { model | size = clamp 4 2000 (size |> String.toFloat |> Maybe.withDefault 128) }
+
+        Reset ->
+            init
+
+        _ ->
+            model
+
+
+parseWeight : String -> IconWeight
+parseWeight weight =
+    case weight of
+        "thin" ->
+            Thin
+
+        "light" ->
+            Light
+    
+        "bold" ->
+            Bold
+
+        "fill" ->
+            Fill
+
+        "duotone" ->
+            Duotone
+
+        _ ->
+            Regular
+
+css =
+    """
+    body {
+        color: white;
+        background-color: #35313D;
+        font-family: monospace;
+    }
+
+    h2 {
+        color: darkgrey;
+    }
+
+    .row {
+        display: flex;
+        justify-content: center;
+        gap: 32px;
+        margin: 32px;
+    }
+    """
+
+
+-- VIEW
+
+
+view : Model -> Html Msg
+view model =
+    let
+        fontSize = String.fromFloat model.size ++ "px"
+    in
+        div
+            [ style "font-size" fontSize ]
+            [ Html.node "style" [] [ text css ]
+            , div
+                [ style "position" "fixed"
+                , style "bottom" "0"
+                , style "left" "0"
+                , style "right" "0"
+                , style "z-index" "1"
+                , style "display" "flex"
+                , style "gap" "16px"
+                , style "justify-content" "center"
+                , style "align-items" "center"
+                , style "padding" "16px"
+                ]
+                [ select [ onInput SetWeight, style "height" "21px" ]
+                    [ option [ value "thin" ] [ text "Thin "] 
+                    , option [ value "light" ] [ text "Light "] 
+                    , option [ value "regular" ] [ text "Regular "] 
+                    , option [ value "bold" ] [ text "Bold "] 
+                    , option [ value "fill" ] [ text "Fill "] 
+                    , option [ value "duotone" ] [ text "Duotone "] 
+                    ]
+                , input
+                    [ type_ "number"
+                    , placeholder "Size"
+              
+                    , value <| String.fromFloat model.size
+                    , onInput SetSize
+                    ] []
+                , button
+                    [ onClick Reset ]
+                    [ text "Reset" ]
+                ]
+${names.map((name) => 
+`           , div [ class "row" ]
+                [ Phosphor.${name} model.weight |> toHtml []
+                , Phosphor.${name} Thin |> toHtml []
+                , Phosphor.${name} Light |> toHtml []
+                , Phosphor.${name} Regular |> toHtml []
+                , Phosphor.${name} Bold |> toHtml []
+                , Phosphor.${name} Fill |> toHtml []
+                , Phosphor.${name} Duotone |> toHtml []
+                ]`).join("\n")}
+            ]
+`;
+  fs.writeFileSync(TEST_PATH, fileString);
 }
