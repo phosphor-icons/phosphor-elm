@@ -165,9 +165,9 @@ view model =
                 , style "padding" "0.25em"
                 , style "color" "steelblue"
                 ]
-                [ Phosphor.gameController model.weight |> withClass "grid-item" |> toHtml []
-                , Phosphor.sword model.weight |> withClass "grid-item" |> toHtml []
-                , Phosphor.strategy model.weight |> withClass "grid-item" |> toHtml []
+                [ Phosphor.champagne model.weight |> withClass "grid-item" |> toHtml []
+                , Phosphor.bone model.weight |> withClass "grid-item" |> toHtml []
+                , Phosphor.cassetteTape model.weight |> withClass "grid-item" |> toHtml []
                 -- [ Phosphor.sunglasses model.weight |> toHtml []
                 -- , Phosphor.tShirt model.weight |> toHtml []
                 -- , Phosphor.spiral model.weight |> toHtml []
