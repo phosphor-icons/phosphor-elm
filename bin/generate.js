@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 const fs = require("fs");
+const { exec } = require("child_process");
 const path = require("path");
 const chalk = require("chalk");
 const { parse } = require("svgson");
@@ -8,54 +9,71 @@ const { ASSETS_PATH, INDEX_PATH, TEST_PATH } = require("./index");
 
 const icons = {};
 const names = [];
-const weights = ["Thin", "Light", "Regular", "Bold", "Fill", "Duotone"];
+const weights = ["thin", "light", "regular", "bold", "fill", "duotone"];
 
-void (async function main() {
-  readFiles();
-  await generateComponents();
-  generateTestPage();
+void (function main() {
+  exec(
+    "git submodule update --remote --init --force --recursive",
+    (err, stdout, stderr) => {
+      if (err) {
+        console.error(`${chalk.inverse.red(" ERR ")} ${err.message}`);
+        process.exit(1);
+      }
+
+      if (stderr) {
+        console.error(`${chalk.inverse.red(" ERR ")} ${stderr}`);
+        process.exit(1);
+      }
+
+      console.log(
+        `${chalk.inverse.green(" OK ")} Updated submodule @phosphor-icons/core`
+      );
+
+      loadWeights();
+      generateComponents()
+        .then(generateTestPage)
+        .catch((err) => {
+          console.error(`${chalk.inverse.red(" ERR ")} ${err.message}`);
+          process.exit(1);
+        });
+    }
+  );
 })();
 
-function readFile(folder, pathname, weight) {
-  const file = fs.readFileSync(pathname);
-  icons[folder][weight] = file
-    .toString("utf-8")
-    .replace(/^.*<\?xml.*?\>/g, "")
-    .replace(
-      /<rect width="25[\d,\.]+" height="25[\d,\.]+" fill="none".*?\/>/g,
-      ""
-    )
-    .replace(/<title.*?/, "")
-    .replace(/"#0+"/g, "currentColor");
+function readFile(folder, name, weight) {
+  const file = fs.readFileSync(folder);
+  icons[name][weight] = file.toString("utf-8");
 }
 
-function readFiles() {
-  const folders = fs.readdirSync(ASSETS_PATH, "utf-8");
+function loadWeights() {
+  const weightFolder = fs.readdirSync(ASSETS_PATH, "utf-8");
 
-  folders.forEach((folder) => {
-    if (!fs.lstatSync(path.join(ASSETS_PATH, folder)).isDirectory()) return;
-    icons[folder] = {};
+  weightFolder.forEach((weightFolder) => {
+    if (!fs.lstatSync(path.join(ASSETS_PATH, weightFolder)).isDirectory())
+      return;
 
-    const files = fs.readdirSync(path.join(ASSETS_PATH, folder));
+    if (!weights.includes(weightFolder)) {
+      console.error(
+        `${chalk.inverse.red(" ERR ")} Bad folder name ${weightFolder}`
+      );
+      process.exit(1);
+    }
+
+    const files = fs.readdirSync(path.join(ASSETS_PATH, weightFolder));
     files.forEach((filename) => {
-      const filepath = path.join(ASSETS_PATH, folder, filename);
-      const weight = filename.split(".svg")[0].split("-").slice(-1)[0];
-      switch (weight) {
-        case "thin":
-        case "light":
-        case "bold":
-        case "fill":
-        case "duotone":
-          readFile(
-            folder,
-            filepath,
-            weight.replace(/^\w/, (c) => c.toUpperCase())
-          );
-          break;
-        default:
-          readFile(folder, filepath, "Regular");
-          break;
+      let name;
+      const nameParts = filename.split(".svg")[0].split("-");
+      if (nameParts[nameParts.length - 1] === weightFolder) {
+        name = nameParts.slice(0, -1).join("-");
+      } else {
+        name = nameParts.join("-");
       }
+
+      if (!icons[name]) {
+        icons[name] = {};
+      }
+      const filepath = path.join(ASSETS_PATH, weightFolder, filename);
+      readFile(filepath, name, weightFolder);
     });
   });
 }
@@ -351,7 +369,7 @@ ${name} weight =
         // console.log(elmElementString);
 
         componentString += `\
-                ${weight} ->
+                ${weight.replace(/^\w/, (c) => c.toUpperCase())} ->
                     ${elmElementString}
 
 `;
@@ -540,8 +558,10 @@ view model =
                     [ onClick Reset ]
                     [ text "Reset" ]
                 ]
-${names.map((name) => 
-`           , div [ class "row" ]
+${names
+  .map(
+    (name) =>
+      `           , div [ class "row" ]
                 [ Phosphor.${name} model.weight |> toHtml []
                 , Phosphor.${name} Thin |> toHtml []
                 , Phosphor.${name} Light |> toHtml []
@@ -549,7 +569,9 @@ ${names.map((name) =>
                 , Phosphor.${name} Bold |> toHtml []
                 , Phosphor.${name} Fill |> toHtml []
                 , Phosphor.${name} Duotone |> toHtml []
-                ]`).join("\n")}
+                ]`
+  )
+  .join("\n")}
             ]
 `;
   fs.writeFileSync(TEST_PATH, fileString);

@@ -1,0 +1,15 @@
+{
+  "name": "phosphor-elm-generator",
+  "version": "2.0.0",
+  "main": "index.js",
+  "author": "rektdeckard",
+  "license": "MIT",
+  "devDependencies": {
+    "chalk": "^4.2.0",
+    "svgson": "^5.2.1"
+  },
+  "private": true,
+  "scripts": {
+    "generate": "node bin/generate.js"
+  }
+}
