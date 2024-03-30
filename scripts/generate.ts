@@ -1,14 +1,14 @@
 #!/usr/bin/env node
-const fs = require("fs");
-const { exec } = require("child_process");
-const path = require("path");
-const chalk = require("chalk");
-const { parse } = require("svgson");
+import fs from "node:fs";
+import { exec } from "child_process";
+import path from "path";
+import chalk from "chalk";
+import { INode, parse } from "svgson";
 
-const { ASSETS_PATH, INDEX_PATH, TEST_PATH } = require("./index");
+import { ASSETS_PATH, INDEX_PATH, TEST_PATH } from ".";
 
-const icons = {};
-const names = [];
+const icons: Record<string, Record<string, string>> = {};
+const names: string[] = [];
 const weights = ["thin", "light", "regular", "bold", "fill", "duotone"];
 
 void (function main() {
@@ -40,7 +40,7 @@ void (function main() {
   );
 })();
 
-function readFile(folder, name, weight) {
+function readFile(folder: string, name: string, weight: string) {
   const file = fs.readFileSync(folder);
   icons[name][weight] = file.toString("utf-8");
 }
@@ -78,7 +78,7 @@ function loadWeights() {
   });
 }
 
-function checkFiles(icon) {
+function checkFiles(icon: Record<string, string>) {
   const weightsPresent = Object.keys(icon);
   return (
     weightsPresent.length === 6 &&
@@ -86,20 +86,16 @@ function checkFiles(icon) {
   );
 }
 
-function generateAttrs(attributes) {
+function generateAttrs(attributes: Record<string, string>) {
   return Object.entries(attributes).map(([attribute, value]) => {
     const attr = attribute.replace(/-./g, (x) => x[1].toUpperCase());
     return `A.${attr} "${value}"`;
   });
 }
 
-function generateElement(element, weight) {
-  let childElements = element.children.map((child) =>
-    generateElement(child, weight)
-  );
-
+function generateElement(element: INode) {
+  let childElements = element.children.map(generateElement);
   if (element.name === "svg") return `[ ${childElements.join(", ")} ]`;
-
   return `S.${element.name} [ ${generateAttrs(element.attributes).join(
     ", "
   )} ] [ ${childElements.join(", ")} ]`;
@@ -325,7 +321,7 @@ makeBuilder src =
 
 `;
 
-  for (let key in icons) {
+  for (const key in icons) {
     const icon = icons[key];
     const name = key.replace(/-./g, (x) => x[1].toUpperCase());
     names.push(name);
