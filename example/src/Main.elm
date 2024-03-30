@@ -133,9 +133,9 @@ view model =
                 , style "padding" "0.25em"
                 , style "color" "darkolivegreen"
                 ]
-                [ Phosphor.campfire model.weight |> withClass "grid-item" |> toHtml []
-                , Phosphor.cactus model.weight |> withClass "grid-item" |> toHtml []
-                , Phosphor.beerBottle model.weight |> withClass "grid-item" |> toHtml []
+                [ Phosphor.baseballHelmet model.weight |> withClass "grid-item" |> toHtml []
+                , Phosphor.boxingGlove model.weight |> withClass "grid-item" |> toHtml []
+                , Phosphor.boules model.weight |> withClass "grid-item" |> toHtml []
                 -- [ Phosphor.bookBookmark model.weight |> toHtml []
                 -- , Phosphor.cloudMoon model.weight |> toHtml []
                 -- , Phosphor.flask model.weight |> toHtml []
@@ -149,9 +149,9 @@ view model =
                 , style "padding" "0.25em"
                 , style "color" "palevioletred"
                 ]
-                [ Phosphor.flyingSaucer model.weight |> withClass "grid-item" |> toHtml []
-                , Phosphor.handEye model.weight |> withClass "grid-item" |> toHtml []
-                , Phosphor.skull model.weight |> withClass "grid-item" |> toHtml []
+                [ Phosphor.beachBall model.weight |> withClass "grid-item" |> toHtml []
+                , Phosphor.courtBasketball model.weight |> withClass "grid-item" |> toHtml []
+                , Phosphor.footballHelmet model.weight |> withClass "grid-item" |> toHtml []
                 -- [ Phosphor.mountains model.weight |> toHtml []
                 -- , Phosphor.package model.weight |> toHtml []
                 -- , Phosphor.snowflake model.weight |> toHtml []
@@ -165,9 +165,9 @@ view model =
                 , style "padding" "0.25em"
                 , style "color" "steelblue"
                 ]
-                [ Phosphor.champagne model.weight |> withClass "grid-item" |> toHtml []
-                , Phosphor.bone model.weight |> withClass "grid-item" |> toHtml []
-                , Phosphor.cassetteTape model.weight |> withClass "grid-item" |> toHtml []
+                [ Phosphor.hockey model.weight |> withClass "grid-item" |> toHtml []
+                , Phosphor.personSimpleSnowboard model.weight |> withClass "grid-item" |> toHtml []
+                , Phosphor.sock model.weight |> withClass "grid-item" |> toHtml []
                 -- [ Phosphor.sunglasses model.weight |> toHtml []
                 -- , Phosphor.tShirt model.weight |> toHtml []
                 -- , Phosphor.spiral model.weight |> toHtml []
