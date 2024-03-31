@@ -4,6 +4,7 @@ import { exec } from "child_process";
 import path from "path";
 import chalk from "chalk";
 import { INode, parse } from "svgson";
+import { icons as catalog } from "../core/src";
 
 import { ASSETS_PATH, INDEX_PATH, TEST_PATH } from ".";
 
@@ -40,42 +41,36 @@ void (function main() {
   );
 })();
 
-function readFile(folder: string, name: string, weight: string) {
-  const file = fs.readFileSync(folder);
+function readFile(path: string, name: string, weight: string) {
+  const file = fs.readFileSync(path);
   icons[name][weight] = file.toString("utf-8");
 }
 
 function loadWeights() {
   const weightFolder = fs.readdirSync(ASSETS_PATH, "utf-8");
 
-  weightFolder.forEach((weightFolder) => {
-    if (!fs.lstatSync(path.join(ASSETS_PATH, weightFolder)).isDirectory())
-      return;
+  for (const weight of weightFolder) {
+    if (!fs.lstatSync(path.join(ASSETS_PATH, weight)).isDirectory()) return;
 
-    if (!weights.includes(weightFolder)) {
-      console.error(
-        `${chalk.inverse.red(" ERR ")} Bad folder name ${weightFolder}`
-      );
+    if (!weights.includes(weight)) {
+      console.error(`${chalk.inverse.red(" ERR ")} Bad folder name ${weight}`);
       process.exit(1);
     }
 
-    const files = fs.readdirSync(path.join(ASSETS_PATH, weightFolder));
-    files.forEach((filename) => {
-      let name;
-      const nameParts = filename.split(".svg")[0].split("-");
-      if (nameParts[nameParts.length - 1] === weightFolder) {
-        name = nameParts.slice(0, -1).join("-");
-      } else {
-        name = nameParts.join("-");
-      }
+    for (const icon of catalog) {
+      const filename = `${icon.name}${
+        weight === "regular" ? "" : `-${weight}`
+      }.svg`;
 
-      if (!icons[name]) {
-        icons[name] = {};
+      const camelName = pascalToCamel(icon.pascal_name);
+
+      if (!icons[camelName]) {
+        icons[camelName] = {};
       }
-      const filepath = path.join(ASSETS_PATH, weightFolder, filename);
-      readFile(filepath, name, weightFolder);
-    });
-  });
+      const filepath = path.join(ASSETS_PATH, weight, filename);
+      readFile(filepath, camelName, weight);
+    }
+  }
 }
 
 function checkFiles(icon: Record<string, string>) {
@@ -105,9 +100,14 @@ async function generateComponents() {
   let passes = 0;
   let fails = 0;
 
-  const allIconNames = Object.keys(icons).map((i) =>
-    i.replace(/-./g, (x) => x[1].toUpperCase())
-  );
+  const allIconNames = catalog
+    .map((i) => [
+      pascalToCamel(i.pascal_name),
+      ...((i as any).alias
+        ? [pascalToCamel((i as any).alias.pascal_name)]
+        : []),
+    ])
+    .flat();
 
   let componentString = `\
 module Phosphor exposing 
@@ -321,9 +321,9 @@ makeBuilder src =
 
 `;
 
-  for (const key in icons) {
-    const icon = icons[key];
-    const name = key.replace(/-./g, (x) => x[1].toUpperCase());
+  for (const i of catalog) {
+    const name = pascalToCamel(i.pascal_name);
+    const icon = icons[name];
     names.push(name);
 
     if (!checkFiles(icon)) {
@@ -338,7 +338,7 @@ makeBuilder src =
     }
 
     componentString += `\
-{-| ![${name}](https://raw.githubusercontent.com/phosphor-icons/core/main/assets/regular/${key}.svg)
+{-| ![${name}](https://raw.githubusercontent.com/phosphor-icons/core/main/assets/regular/${i.name}.svg)
 -}
 ${name} : Icon
 ${name} weight =
@@ -385,6 +385,18 @@ ${name} weight =
 
 
 `;
+
+    if ((i as any).alias) {
+      const aliasName = pascalToCamel((i as any).alias.pascal_name);
+      componentString += `\
+{-| ![${aliasName}](https://raw.githubusercontent.com/phosphor-icons/core/main/assets/regular/${i.name}.svg)
+-}
+${aliasName} : IconWeight -> IconVariant
+${aliasName} = ${name}
+
+
+`;
+    }
 
     passes += 1;
     console.log(`${chalk.inverse.green(" DONE ")} ${name}`);
@@ -571,4 +583,8 @@ ${names
             ]
 `;
   fs.writeFileSync(TEST_PATH, fileString);
+}
+
+function pascalToCamel(str: string): string {
+  return str.replace(/^./, (c) => c.toLowerCase());
 }
