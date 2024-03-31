@@ -1,4 +1,4 @@
-<img src="/meta/phosphor-mark-tight-yellow.png" width="128" align="right" />
+<img src="https://github.com/phosphor-icons/phosphor-elm/blob/master/meta/phosphor-mark-tight-black.png?raw=true" width="128" align="right" />
 
 # phosphor-elm
 
