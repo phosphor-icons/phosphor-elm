@@ -3,6 +3,7 @@
   "version": "2.1.0",
   "author": "rektdeckard",
   "license": "MIT",
+  "packageManager": "pnpm@9",
   "devDependencies": {
     "@types/node": "18",
     "chalk": "^4.1.2",
@@ -11,6 +12,6 @@
   },
   "private": true,
   "scripts": {
-    "generate": "npx tsx scripts/generate.ts"
+    "generate": "tsx scripts/generate.ts"
   }
 }
