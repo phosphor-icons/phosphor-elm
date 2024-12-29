@@ -6,9 +6,10 @@
   "packageManager": "pnpm@9",
   "devDependencies": {
     "@types/node": "18",
-    "chalk": "^4.1.2",
-    "svgson": "^5.2.1",
-    "typescript": "^5.4.3"
+    "chalk": "^4",
+    "svgson": "^5.2",
+    "tsx": "^4.19",
+    "typescript": "^5"
   },
   "private": true,
   "scripts": {
