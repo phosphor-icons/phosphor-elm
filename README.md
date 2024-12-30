@@ -1,6 +1,8 @@
-<img src="https://github.com/phosphor-icons/phosphor-elm/blob/master/meta/phosphor-mark-tight-black.png?raw=true" width="128" align="right" />
-
 # phosphor-elm
+
+<!-- BEGIN_LOGO -->
+<img src="https://github.com/phosphor-icons/phosphor-elm/blob/master/meta/phosphor-mark-tight-black.png?raw=true" width="128" align="right" />
+<!-- END_LOGO -->
 
 Phosphor is a flexible icon family for interfaces, diagrams, presentations — whatever, really. Explore all our icons at [phosphoricons.com](https://phosphoricons.com).
 
