@@ -289,7 +289,7 @@ withSizeUnit =
         (\sizeUnit { attrs, src } ->
             makeIconVariant
                 { src = src
-                , attrs = attrs |> Elm.updateRecord [ ( "sizeUnit", Elm.maybe (Just sizeUnit) ) ]
+                , attrs = attrs |> Elm.updateRecord [ ( "sizeUnit", sizeUnit ) ]
                 }
         )
         |> Elm.Declare.withDocumentation
