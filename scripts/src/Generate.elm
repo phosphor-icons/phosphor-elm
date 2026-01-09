@@ -508,7 +508,8 @@ iconList icons =
                                         )
                                     |> Elm.Let.withBody makeBuilder.call
                             )
-                            |> Elm.withType iconAlias.annotation
+                            -- |> Elm.withType iconAlias.annotation
+                            |> Elm.withType (Annotation.function [ Annotation.named [] "IconWeight" ] (Annotation.named [] "IconVariant"))
                             |> Elm.declaration iconName
                             |> Elm.withDocumentation
                                 (iconLink (String.Extra.dasherize iconName ++ ".svg") "regular")
@@ -520,7 +521,8 @@ iconList icons =
                     Just alias_ ->
                         [ original
                         , Elm.val iconName
-                            |> Elm.withType iconAlias.annotation
+                            -- |> Elm.withType iconAlias.annotation
+                            |> Elm.withType (Annotation.function [ Annotation.named [] "IconWeight" ] (Annotation.named [] "IconVariant"))
                             |> Elm.declaration (toIconName alias_)
                             |> Elm.withDocumentation
                                 (iconLink (String.Extra.dasherize iconName ++ ".svg") "regular")
