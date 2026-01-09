@@ -10,11 +10,12 @@
     "elm": "^0.19.1-6",
     "elm-codegen": "^0.6.1",
     "elm-format": "^0.8.7",
+    "elm-pages": "^3.0.27",
     "svgson": "^5.2",
     "typescript": "^5"
   },
   "private": true,
   "scripts": {
-    "generate": "(test -f node_modules/.bin/elm-codegen || yarn) && (test -f codegen/Gen/Basics.elm || elm-codegen install) && rm -rf src && elm-codegen run --flags-from core/assets --output src && elm-format --yes src"
+    "generate": "(test -f node_modules/.bin/elm-pages || pnpm install) && (test -f codegen/Gen/Basics.elm || pnpx elm-codegen install) && rm -rf src && (cd scripts && pnpx elm-pages run src/Generate.elm)"
   }
 }

@@ -1,7 +1,11 @@
-module Generate exposing (main)
+module Generate exposing (run)
 
 {-| -}
 
+import BackendTask exposing (BackendTask)
+import BackendTask.Custom
+import BackendTask.Do as Do
+import BackendTask.File as File
 import Dict
 import Elm exposing (Declaration)
 import Elm.Annotation as Annotation exposing (Annotation)
@@ -9,6 +13,7 @@ import Elm.Arg as Arg
 import Elm.Declare
 import Elm.Let
 import Elm.Op
+import FatalError exposing (FatalError)
 import Gen.Basics
 import Gen.CodeGen.Generate as Generate
 import Gen.Debug
@@ -20,27 +25,87 @@ import Gen.String
 import Gen.Svg as Svg
 import Gen.Svg.Attributes as SvgA
 import Gen.VirtualDom as VirtualDom
+import Json.Decode
 import Json.Encode
 import List.Extra
+import Pages.Script as Script exposing (Script)
 import Result.Extra
 import String.Extra
 import String.Multiline
 import XmlParser
 
 
-main : Program Json.Encode.Value () ()
-main =
-    Generate.fromDirectory file
+run : Script
+run =
+    Script.withoutCliOptions task
 
 
-file : Generate.Directory -> List Elm.File
-file directory =
-    mainModule directory
-        :: assets directory
-        :: perWeight directory
+type alias JSIcon =
+    { name : String
+    , alias_ : Maybe String
+    }
 
 
-mainModule : Generate.Directory -> Elm.File
+task : BackendTask FatalError ()
+task =
+    Do.do iconsFromJS <|
+        \jsIcons ->
+            Do.do (assets jsIcons) <|
+                \assetsFile ->
+                    let
+                        files : List Elm.File
+                        files =
+                            mainModule jsIcons
+                                :: assetsFile
+                                -- :: List.map (perWeight jsIcons) weights
+                                :: []
+                    in
+                    Do.each files writeFile <|
+                        \_ ->
+                            Script.exec "elm-format" [ "--yes", "../src" ]
+
+
+weights : List String
+weights =
+    [ "bold"
+    , "duotone"
+    , "fill"
+    , "light"
+    , "regular"
+    , "thin"
+    ]
+
+
+writeFile : Elm.File -> BackendTask FatalError ()
+writeFile file =
+    Script.writeFile
+        { path = "../src/" ++ file.path
+        , body = file.contents
+        }
+        |> BackendTask.allowFatal
+
+
+iconsFromJS : BackendTask FatalError (List JSIcon)
+iconsFromJS =
+    BackendTask.Custom.run "getIcons"
+        Json.Encode.null
+        (Json.Decode.list jsIconDecoder)
+        |> BackendTask.allowFatal
+
+
+jsIconDecoder : Json.Decode.Decoder JSIcon
+jsIconDecoder =
+    Json.Decode.map2
+        (\name alias_ ->
+            { name = name
+            , alias_ = alias_
+            }
+        )
+        (Json.Decode.field "name" Json.Decode.string)
+        (Json.Decode.maybe (Json.Decode.at [ "alias", "name" ] Json.Decode.string))
+
+
+mainModule : List JSIcon -> Elm.File
 mainModule directory =
     Elm.fileWith [ "Phosphor" ]
         { docs = ""
@@ -414,40 +479,52 @@ makeBuilder =
         )
 
 
-iconList : Generate.Directory -> List Declaration
-iconList (Generate.Directory directory) =
-    directory.directories
-        |> Dict.toList
+iconList : List JSIcon -> List Declaration
+iconList icons =
+    icons
+        |> List.sortBy .name
         |> List.concatMap
-            (\( _, Generate.Directory icons ) ->
-                icons.files
-                    |> Dict.toList
-                    |> List.map (\( filename, _ ) -> toIconName filename)
-            )
-        |> List.Extra.unique
-        |> List.sort
-        |> List.map
-            (\iconName ->
-                Elm.fn
-                    (Arg.var "weight")
-                    (\weight ->
-                        Elm.Let.letIn identity
-                            |> Elm.Let.value "elements"
-                                (iconWeightType.case_ weight
-                                    { bold = assetName iconName "Bold"
-                                    , duotone = assetName iconName "Duotone"
-                                    , fill = assetName iconName "Fill"
-                                    , light = assetName iconName "Light"
-                                    , regular = assetName iconName "Regular"
-                                    , thin = assetName iconName "Thin"
-                                    }
-                                )
-                            |> Elm.Let.withBody makeBuilder.call
-                    )
-                    |> Elm.withType iconAlias.annotation
-                    |> Elm.declaration iconName
-                    |> Elm.withDocumentation
-                        (iconLink (String.Extra.dasherize iconName ++ ".svg") "regular")
+            (\icon ->
+                let
+                    iconName : String
+                    iconName =
+                        toIconName icon.name
+
+                    original : Declaration
+                    original =
+                        Elm.fn
+                            (Arg.var "weight")
+                            (\weight ->
+                                Elm.Let.letIn identity
+                                    |> Elm.Let.value "elements"
+                                        (iconWeightType.case_ weight
+                                            { bold = assetName iconName "Bold"
+                                            , duotone = assetName iconName "Duotone"
+                                            , fill = assetName iconName "Fill"
+                                            , light = assetName iconName "Light"
+                                            , regular = assetName iconName "Regular"
+                                            , thin = assetName iconName "Thin"
+                                            }
+                                        )
+                                    |> Elm.Let.withBody makeBuilder.call
+                            )
+                            |> Elm.withType iconAlias.annotation
+                            |> Elm.declaration iconName
+                            |> Elm.withDocumentation
+                                (iconLink (String.Extra.dasherize iconName ++ ".svg") "regular")
+                in
+                case icon.alias_ of
+                    Nothing ->
+                        [ original ]
+
+                    Just alias_ ->
+                        [ original
+                        , Elm.val iconName
+                            |> Elm.withType iconAlias.annotation
+                            |> Elm.declaration (toIconName alias_)
+                            |> Elm.withDocumentation
+                                (iconLink (String.Extra.dasherize iconName ++ ".svg") "regular")
+                        ]
             )
 
 
@@ -466,51 +543,77 @@ assetName iconName weight =
         }
 
 
-perWeight : Generate.Directory -> List Elm.File
-perWeight (Generate.Directory directory) =
-    directory.directories
-        |> Dict.toList
-        |> List.map
-            (\( weight, Generate.Directory icons ) ->
-                icons.files
-                    |> Dict.toList
-                    |> List.map
-                        (\( filename, _ ) ->
-                            let
-                                iconName : String
-                                iconName =
-                                    toIconName filename
-                            in
-                            assetName iconName weight
-                                |> makeBuilder.call
-                                |> Elm.withType (Annotation.named [ "Phosphor" ] "Icon")
-                                |> Elm.declaration iconName
-                                |> Elm.withDocumentation (iconLink filename weight)
-                        )
-                    |> (::) makeBuilder.declaration
-                    |> Elm.file [ "Phosphor", String.Extra.toSentenceCase weight ]
-            )
-
-
-assets : Generate.Directory -> Elm.File
-assets (Generate.Directory directory) =
-    directory.directories
-        |> Dict.toList
+perWeight : List JSIcon -> String -> Elm.File
+perWeight icons weight =
+    icons
         |> List.concatMap
-            (\( weight, Generate.Directory icons ) ->
-                Dict.toList icons.files
-                    |> List.map (\( filename, content ) -> ( filename, weight, content ))
+            (\icon ->
+                let
+                    toIcon : String -> String -> Declaration
+                    toIcon name source =
+                        assetName (toIconName source) weight
+                            |> makeBuilder.call
+                            |> Elm.withType (Annotation.named [ "Phosphor" ] "Icon")
+                            |> Elm.declaration (toIconName name)
+                            |> Elm.withDocumentation (iconLink source weight)
+                in
+                case icon.alias_ of
+                    Nothing ->
+                        [ toIcon icon.name icon.name ]
+
+                    Just alias_ ->
+                        [ toIcon icon.name icon.name
+                        , toIcon alias_ icon.name
+                        ]
             )
-        |> List.sortBy (\( filename, _, _ ) -> filename)
-        |> List.map
-            (\( filename, weight, content ) ->
-                toPathList content
-                    |> Elm.withType (Annotation.list (Svg.annotation_.svg (Annotation.var "msg")))
-                    |> Elm.declaration (String.Extra.camelize (String.replace ".svg" "" filename))
-                    |> Elm.withDocumentation (iconLink filename weight)
-                    |> Elm.expose
+        |> (::) makeBuilder.declaration
+        |> Elm.file [ "Phosphor", String.Extra.toSentenceCase weight ]
+
+
+assets : List JSIcon -> BackendTask FatalError Elm.File
+assets icons =
+    weights
+        |> List.concatMap
+            (\weight ->
+                icons
+                    |> List.map
+                        (\icon ->
+                            let
+                                weightSuffix : String
+                                weightSuffix =
+                                    if weight == "regular" then
+                                        ""
+
+                                    else
+                                        "-" ++ weight
+                            in
+                            File.rawFile ("../core/assets/" ++ weight ++ "/" ++ icon.name ++ weightSuffix ++ ".svg")
+                                |> BackendTask.allowFatal
+                                |> BackendTask.map (\content -> ( icon.name, weight, content ))
+                        )
             )
-        |> Elm.file [ "Phosphor", "Assets" ]
+        |> BackendTask.combine
+        |> BackendTask.map
+            (\iconData ->
+                iconData
+                    |> List.sortBy (\( iconName, _, _ ) -> iconName)
+                    |> List.map
+                        (\( iconName, weight, content ) ->
+                            toPathList content
+                                |> Elm.withType (Annotation.list (Svg.annotation_.svg (Annotation.var "msg")))
+                                |> Elm.declaration
+                                    (case String.Extra.toSentenceCase weight of
+                                        "Regular" ->
+                                            toIconName iconName
+
+                                        capitalWeight ->
+                                            toIconName iconName ++ capitalWeight
+                                    )
+                                |> Elm.withDocumentation (iconLink iconName weight)
+                                |> Elm.expose
+                        )
+                    |> Elm.file [ "Phosphor", "Assets" ]
+            )
 
 
 iconLink : String -> String -> String
@@ -564,10 +667,4 @@ extractPath node =
 toIconName : String -> String
 toIconName filename =
     filename
-        |> String.replace "-thin.svg" ""
-        |> String.replace "-light.svg" ""
-        |> String.replace "-bold.svg" ""
-        |> String.replace "-fill.svg" ""
-        |> String.replace "-duotone.svg" ""
-        |> String.replace ".svg" ""
         |> String.Extra.camelize
